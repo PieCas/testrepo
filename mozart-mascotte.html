@@ -566,9 +566,20 @@ body {
       /* Le note già programmate si spengono da sole col volume a zero. */
     }
 
+    /* Se il contesto è stato creato senza un gesto valido (es. banner async)
+       resta sospeso: i gesti successivi devono risvegliarlo. */
+    function risveglia() {
+      if (inEsecuzione && ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(function () {});
+        return true;
+      }
+      return false;
+    }
+
     return {
       avvia: avvia,
       ferma: ferma,
+      risveglia: risveglia,
       inEsecuzione: function () { return inEsecuzione; }
     };
   })();
@@ -711,7 +722,9 @@ body {
      perché su mobile solo la FINE del tocco sblocca l'audio, e così uno
      scroll non fa partire la musica. Capture per precedere la pagina. */
   function primoGesto() {
-    if (musicaRichiesta && !Musica.inEsecuzione()) Musica.avvia();
+    if (!musicaRichiesta) return;
+    if (!Musica.inEsecuzione()) Musica.avvia();
+    else Musica.risveglia();
   }
   document.addEventListener('pointerup', primoGesto, true);
   document.addEventListener('click', primoGesto, true);
@@ -728,6 +741,9 @@ body {
     musicaRichiesta = true;
     aggiornaBottone();
     entra();
+    /* La scelta sul banner è già un gesto: se l'evento arriva da un clic
+       (dispatch sincrono) la musica parte subito, senza un secondo clic. */
+    Musica.avvia();
   }
   document.addEventListener(EVENTO_COOKIE, allaSceltaCookie);
   window.addEventListener(EVENTO_COOKIE, allaSceltaCookie);
