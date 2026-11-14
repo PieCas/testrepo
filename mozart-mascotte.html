@@ -167,6 +167,10 @@ body {
      Contenuto della pagina (dimostrativo)
      ====================================================================== -->
 <main class="demo-contenuto">
+  <p id="demo-diagnostica" style="background:#EFE7D8;border:1px solid #C4C7CE;border-radius:8px;padding:10px 14px;font-family:system-ui,sans-serif;font-size:.9rem">
+    Diagnostica audio (solo demo, rimuovibile): stato <strong id="demo-stato">in attesa</strong>
+    <button id="demo-beep" type="button" style="margin-left:8px;cursor:pointer;border-radius:999px;border:1px solid #C4C7CE;background:#1B1E24;color:#F4F4F6;padding:4px 12px">Test audio</button>
+  </p>
   <h1>Mozart al pianoforte</h1>
   <p>Una mascotte animata costruita con un solo file HTML: nessuna immagine, nessun
      audio registrato, nessuna libreria. Mozart entra camminando dall'angolo in basso
@@ -205,6 +209,21 @@ body {
   }
   document.getElementById('cookie-accetta').addEventListener('click', function () { chiudi('accettato'); });
   document.getElementById('cookie-rifiuta').addEventListener('click', function () { chiudi('rifiutato'); });
+
+  /* Diagnostica visibile: mostra lo stato del contesto audio della mascotta
+     e un beep di prova, così il controllo non richiede la console. */
+  var statoEl = document.getElementById('demo-stato');
+  window.addEventListener('mozart-audio-stato', function (e) {
+    statoEl.textContent = e.detail === 'running'
+      ? 'attivo — la musica sta suonando'
+      : 'sospeso — clicca un punto qualsiasi della pagina';
+  });
+  document.getElementById('demo-beep').addEventListener('click', function () {
+    var c = new AudioContext(), o = c.createOscillator(), g = c.createGain();
+    g.gain.value = 0.2;
+    o.connect(g); g.connect(c.destination); o.start();
+    setTimeout(function () { o.stop(); c.close(); }, 1500);
+  });
 })();
 </script>
 
@@ -562,10 +581,12 @@ body {
       master.gain.setValueAtTime(0.0001, adesso);
       master.gain.exponentialRampToValueAtTime(VOLUME_TOTALE, adesso + 0.8);
 
-      /* Diagnostica in console (nessun errore: solo messaggi informativi). */
+      /* Diagnostica: in console e via evento 'mozart-audio-stato' per la pagina. */
       console.info('[Mozart] motore audio avviato — contesto: ' + ctx.state);
+      segnalaStato();
       ctx.onstatechange = function () {
         if (ctx.state === 'running') console.info('[Mozart] audio attivo');
+        segnalaStato();
       };
 
       schedula();
@@ -583,6 +604,12 @@ body {
       master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), adesso);
       master.gain.exponentialRampToValueAtTime(0.0001, adesso + 0.7);
       /* Le note già programmate si spengono da sole col volume a zero. */
+    }
+
+    function segnalaStato() {
+      try {
+        window.dispatchEvent(new CustomEvent('mozart-audio-stato', { detail: ctx.state }));
+      } catch (e) {}
     }
 
     /* Se il contesto è stato creato senza un gesto valido (es. banner async)
