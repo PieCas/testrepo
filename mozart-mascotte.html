@@ -493,13 +493,18 @@ body {
     /* Una nota di "pianoforte": tre sinusoidi (fondamentale + 2 armonici)
        con attacco esponenziale in 35 ms e lungo decadimento esponenziale. */
     function nota(istante, midi, durataBattute, volume) {
-      var freq = 440 * Math.pow(2, (midi - 69) / 12);
-      var decadimento = Math.max(durataBattute * SEC_PER_BATTUTA, 2.2);
-      var fine = istante + 0.035 + decadimento;
+      // Ensure inputs are numbers and provide defaults
+      var midiVal = Number(midi) || 69;
+      var volVal = Math.max(Number(volume) || 0.0001, 0.0001); // Must be > 0 for exponentialRamp
+      var startTime = Number(istante) || ctx.currentTime;
+
+      var freq = 440 * Math.pow(2, (midiVal - 69) / 12);
+      var decadimento = Math.max((Number(durataBattute) || 1) * SEC_PER_BATTUTA, 2.2);
+      var fine = startTime + 0.035 + decadimento;
 
       var env = ctx.createGain();
-      env.gain.setValueAtTime(0.0001, istante);
-      env.gain.exponentialRampToValueAtTime(volume, istante + 0.035);
+      env.gain.setValueAtTime(0.0001, startTime);
+      env.gain.exponentialRampToValueAtTime(volVal, startTime + 0.035);
       env.gain.exponentialRampToValueAtTime(0.0001, fine);
 
       [1, 2, 3].forEach(function (armonico, i) {
@@ -511,7 +516,7 @@ body {
         g.gain.value = ampiezze[i];
         osc.connect(g);
         g.connect(env);
-        osc.start(istante);
+        osc.start(startTime);
         osc.stop(fine + 0.05);
       });
 
