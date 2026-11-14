@@ -12,9 +12,21 @@
 html, body { margin: 0; padding: 0; }
 body {
   font-family: Georgia, "Times New Roman", serif;
-  background: #FAF6EE;
-  color: #2B2620;
+  background: #14161B;
+  color: #D9D7DE;
   line-height: 1.65;
+}
+.demo-contenuto h1 { color: #F4F4F6; }
+.demo-diagnostica {
+  background: #1E2127; border: 1px solid #3A3E48; border-radius: 8px;
+  padding: 10px 14px;
+  font-family: system-ui, sans-serif; font-size: .9rem; color: #D9D7DE;
+}
+.demo-diagnostica button {
+  margin-left: 8px; cursor: pointer;
+  border-radius: 999px; border: 1px solid #C4C7CE;
+  background: #1B1E24; color: #F4F4F6; padding: 4px 12px;
+  font: inherit;
 }
 .demo-contenuto { max-width: 640px; margin: 0 auto; padding: 48px 22px 160px; }
 .demo-contenuto h1 { font-size: 1.9rem; line-height: 1.25; margin: 0 0 12px; }
@@ -167,9 +179,11 @@ body {
      Contenuto della pagina (dimostrativo)
      ====================================================================== -->
 <main class="demo-contenuto">
-  <p id="demo-diagnostica" style="background:#EFE7D8;border:1px solid #C4C7CE;border-radius:8px;padding:10px 14px;font-family:system-ui,sans-serif;font-size:.9rem">
-    Diagnostica audio (solo demo, rimuovibile): stato <strong id="demo-stato">in attesa</strong>
-    <button id="demo-beep" type="button" style="margin-left:8px;cursor:pointer;border-radius:999px;border:1px solid #C4C7CE;background:#1B1E24;color:#F4F4F6;padding:4px 12px">Test audio</button>
+  <p class="demo-diagnostica" id="demo-diagnostica">
+    Diagnostica audio v4 (solo demo, rimuovibile): stato <strong id="demo-stato">in attesa</strong>
+    · preferenza salvata: <strong id="demo-pref">—</strong>
+    <button id="demo-beep" type="button">Test audio</button>
+    <button id="demo-azzera" type="button">Azzera preferenza</button>
   </p>
   <h1>Mozart al pianoforte</h1>
   <p>Una mascotte animata costruita con un solo file HTML: nessuna immagine, nessun
@@ -213,10 +227,22 @@ body {
   /* Diagnostica visibile: mostra lo stato del contesto audio della mascotta
      e un beep di prova, così il controllo non richiede la console. */
   var statoEl = document.getElementById('demo-stato');
+  var prefEl = document.getElementById('demo-pref');
   window.addEventListener('mozart-audio-stato', function (e) {
     statoEl.textContent = e.detail === 'running'
       ? 'attivo — la musica sta suonando'
       : 'sospeso — clicca un punto qualsiasi della pagina';
+  });
+  setInterval(function () {
+    var v = null;
+    try { v = localStorage.getItem('mozart-mascotte:musica'); } catch (e) {}
+    prefEl.textContent = v === 'off'
+      ? 'off — la mascotta non entra: premi "Azzera preferenza" o "Ascolta musica"'
+      : 'on';
+  }, 800);
+  document.getElementById('demo-azzera').addEventListener('click', function () {
+    try { localStorage.removeItem('mozart-mascotte:musica'); } catch (e) {}
+    location.reload();
   });
   document.getElementById('demo-beep').addEventListener('click', function () {
     var c = new AudioContext(), o = c.createOscillator(), g = c.createGain();
@@ -402,7 +428,7 @@ body {
 
   /* Marcatore di versione in console: utile per verificare che la pagina
      caricata sia davvero l'ultima (e non una copia in cache). */
-  console.info('[Mozart] mascotta v3 — file unico, audio sintetizzato');
+  console.info('[Mozart] mascotta v4 — file unico, audio sintetizzato');
 
   /* ======================================================================
      MOTORE AUDIO — Sonata K. 545 sintetizzata con la Web Audio API
@@ -453,8 +479,8 @@ body {
     var VOLUME_ACCOMPAGNAMENTO = 0.11;
     /* Compenso sul master: le voci di nota restano 0,3 / 0,11 (volume basso),
        ma il segnale complessivo esce a un livello chiaramente percepibile
-       anche sugli speaker di un laptop (picco ~0,75, senza clipping). */
-    var VOLUME_TOTALE = 2.2;
+       anche a volume di sistema moderato (picco ~0,6, senza clipping). */
+    var VOLUME_TOTALE = 3;
 
     var ctx = null, filtro = null, convoluzione = null, wet = null, master = null;
     var timer = null;
