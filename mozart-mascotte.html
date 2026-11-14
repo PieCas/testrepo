@@ -381,6 +381,10 @@ body {
 (function () {
   'use strict';
 
+  /* Marcatore di versione in console: utile per verificare che la pagina
+     caricata sia davvero l'ultima (e non una copia in cache). */
+  console.info('[Mozart] mascotta v3 — file unico, audio sintetizzato');
+
   /* ======================================================================
      MOTORE AUDIO — Sonata K. 545 sintetizzata con la Web Audio API
      ====================================================================== */
@@ -428,6 +432,10 @@ body {
 
     var VOLUME_MELODIA = 0.3;
     var VOLUME_ACCOMPAGNAMENTO = 0.11;
+    /* Compenso sul master: le voci di nota restano 0,3 / 0,11 (volume basso),
+       ma il segnale complessivo esce a un livello chiaramente percepibile
+       anche sugli speaker di un laptop (picco ~0,75, senza clipping). */
+    var VOLUME_TOTALE = 2.2;
 
     var ctx = null, filtro = null, convoluzione = null, wet = null, master = null;
     var timer = null;
@@ -547,7 +555,13 @@ body {
       var adesso = ctx.currentTime;
       master.gain.cancelScheduledValues(adesso);
       master.gain.setValueAtTime(0.0001, adesso);
-      master.gain.exponentialRampToValueAtTime(1, adesso + 0.8);
+      master.gain.exponentialRampToValueAtTime(VOLUME_TOTALE, adesso + 0.8);
+
+      /* Diagnostica in console (nessun errore: solo messaggi informativi). */
+      console.info('[Mozart] motore audio avviato — contesto: ' + ctx.state);
+      ctx.onstatechange = function () {
+        if (ctx.state === 'running') console.info('[Mozart] audio attivo');
+      };
 
       schedula();
       timer = setInterval(schedula, TICK);
