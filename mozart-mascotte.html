@@ -17,17 +17,6 @@ body {
   line-height: 1.65;
 }
 .demo-contenuto h1 { color: #F4F4F6; }
-.demo-diagnostica {
-  background: #1E2127; border: 1px solid #3A3E48; border-radius: 8px;
-  padding: 10px 14px;
-  font-family: system-ui, sans-serif; font-size: .9rem; color: #D9D7DE;
-}
-.demo-diagnostica button {
-  margin-left: 8px; cursor: pointer;
-  border-radius: 999px; border: 1px solid #C4C7CE;
-  background: #1B1E24; color: #F4F4F6; padding: 4px 12px;
-  font: inherit;
-}
 .demo-contenuto { max-width: 640px; margin: 0 auto; padding: 48px 22px 160px; }
 .demo-contenuto h1 { font-size: 1.9rem; line-height: 1.25; margin: 0 0 12px; }
 .demo-contenuto p  { margin: 0 0 14px; }
@@ -179,12 +168,6 @@ body {
      Contenuto della pagina (dimostrativo)
      ====================================================================== -->
 <main class="demo-contenuto">
-  <p class="demo-diagnostica" id="demo-diagnostica">
-    Diagnostica audio v4 (solo demo, rimuovibile): stato <strong id="demo-stato">in attesa</strong>
-    · preferenza salvata: <strong id="demo-pref">—</strong>
-    <button id="demo-beep" type="button">Test audio</button>
-    <button id="demo-azzera" type="button">Azzera preferenza</button>
-  </p>
   <h1>Mozart al pianoforte</h1>
   <p>Una mascotte animata costruita con un solo file HTML: nessuna immagine, nessun
      audio registrato, nessuna libreria. Mozart entra camminando dall'angolo in basso
@@ -224,32 +207,6 @@ body {
   document.getElementById('cookie-accetta').addEventListener('click', function () { chiudi('accettato'); });
   document.getElementById('cookie-rifiuta').addEventListener('click', function () { chiudi('rifiutato'); });
 
-  /* Diagnostica visibile: mostra lo stato del contesto audio della mascotta
-     e un beep di prova, così il controllo non richiede la console. */
-  var statoEl = document.getElementById('demo-stato');
-  var prefEl = document.getElementById('demo-pref');
-  window.addEventListener('mozart-audio-stato', function (e) {
-    statoEl.textContent = e.detail === 'running'
-      ? 'attivo — la musica sta suonando'
-      : 'sospeso — clicca un punto qualsiasi della pagina';
-  });
-  setInterval(function () {
-    var v = null;
-    try { v = localStorage.getItem('mozart-mascotte:musica'); } catch (e) {}
-    prefEl.textContent = v === 'off'
-      ? 'off — la mascotta non entra: premi "Azzera preferenza" o "Ascolta musica"'
-      : 'on';
-  }, 800);
-  document.getElementById('demo-azzera').addEventListener('click', function () {
-    try { localStorage.removeItem('mozart-mascotte:musica'); } catch (e) {}
-    location.reload();
-  });
-  document.getElementById('demo-beep').addEventListener('click', function () {
-    var c = new AudioContext(), o = c.createOscillator(), g = c.createGain();
-    g.gain.value = 0.2;
-    o.connect(g); g.connect(c.destination); o.start();
-    setTimeout(function () { o.stop(); c.close(); }, 1500);
-  });
 })();
 </script>
 
@@ -425,10 +382,6 @@ body {
 <script>
 (function () {
   'use strict';
-
-  /* Marcatore di versione in console: utile per verificare che la pagina
-     caricata sia davvero l'ultima (e non una copia in cache). */
-  console.info('[Mozart] mascotta v4 — file unico, audio sintetizzato');
 
   /* ======================================================================
      MOTORE AUDIO — Sonata K. 545 sintetizzata con la Web Audio API
@@ -607,13 +560,6 @@ body {
       master.gain.setValueAtTime(0.0001, adesso);
       master.gain.exponentialRampToValueAtTime(VOLUME_TOTALE, adesso + 0.8);
 
-      /* Diagnostica: in console e via evento 'mozart-audio-stato' per la pagina. */
-      console.info('[Mozart] motore audio avviato — contesto: ' + ctx.state);
-      segnalaStato();
-      ctx.onstatechange = function () {
-        if (ctx.state === 'running') console.info('[Mozart] audio attivo');
-        segnalaStato();
-      };
 
       schedula();
       timer = setInterval(schedula, TICK);
@@ -630,12 +576,6 @@ body {
       master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), adesso);
       master.gain.exponentialRampToValueAtTime(0.0001, adesso + 0.7);
       /* Le note già programmate si spengono da sole col volume a zero. */
-    }
-
-    function segnalaStato() {
-      try {
-        window.dispatchEvent(new CustomEvent('mozart-audio-stato', { detail: ctx.state }));
-      } catch (e) {}
     }
 
     /* Se il contesto è stato creato senza un gesto valido (es. banner async)
