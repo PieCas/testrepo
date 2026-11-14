@@ -553,12 +553,16 @@ body {
       inEsecuzione = true;
 
       idxMelodia = 0; giroMelodia = 0; ottavoNext = 0;
-      t0Ciclo = ctx.currentTime + 0.12;
+      /* Piccolo canto d'attesa prima della prima nota: dà tempo al fade-in
+         di essere già avviato, così il tema d'apertura non viene inghiottito. */
+      t0Ciclo = ctx.currentTime + 0.4;
 
+      /* Fade-in lineare (non esponenziale): crescita percettiva uniforme,
+         senza il "fiore" improvviso dei primi istanti. */
       var adesso = ctx.currentTime;
       master.gain.cancelScheduledValues(adesso);
-      master.gain.setValueAtTime(0.0001, adesso);
-      master.gain.exponentialRampToValueAtTime(VOLUME_TOTALE, adesso + 0.8);
+      master.gain.setValueAtTime(Math.max(master.gain.value, 0), adesso);
+      master.gain.linearRampToValueAtTime(VOLUME_TOTALE, adesso + 1.2);
 
 
       schedula();
